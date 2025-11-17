@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  task-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task-run-service
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./tasks:/app/tasks
+      - ./logs:/app/logs
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - TASKS_DIR=/app/tasks
+      - LOGS_DIR=/app/logs
+      - MAX_TASK_WORKERS=5
+      - TASK_TIMEOUT=3600
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/system/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

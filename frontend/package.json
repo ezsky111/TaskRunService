@@ -1,0 +1,20 @@
+{
+  "name": "task-run-service-web",
+  "version": "1.0.0",
+  "description": "Task execution service web interface",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "vue": "^3.3.0",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.4.0",
+    "vite": "^5.0.0"
+  }
+}

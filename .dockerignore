@@ -1,0 +1,13 @@
+.dockerignore
+.git
+.github
+.gitignore
+README.md
+node_modules
+frontend/dist
+frontend/node_modules
+backend/__pycache__
+backend/*.pyc
+backend/.pytest_cache
+.env.local
+.env.*.local
