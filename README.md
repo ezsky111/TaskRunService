@@ -110,23 +110,69 @@ TaskRunService/
 ## 🐳 Docker部署
 
 ### 特点
-- 多阶段构建：先构建前端，再打包后端
-- 前后端集成：前端dist打包入后端
+- 单阶段构建：由CI（GitHub Actions）构建前端，镜像仅包含后端
+- 前后端集成：预构建的前端 `frontend/dist` 打包入镜像
 - 自动健康检查
-- 持久化存储：tasks和logs目录映射
+- 灵活存储：tasks和logs目录挂载为可选项
 
 ### 快速启动
 
+#### 方式1: Docker Compose（推荐开发环境）
 ```bash
-# 方式1: Docker Compose
 docker-compose up -d
+```
 
-# 方式2: 直接Docker
-docker build -t task-run-service .
-docker run -p 5000:5000 \
+#### 方式2: 直接Docker运行
+
+**不挂载任何卷（容器内独立存储）：**
+```bash
+docker run -d -p 5000:5000 \
+  --name task-service \
+  ezsky111/taskrunservice:latest
+```
+
+**挂载tasks和logs目录（数据共享+持久化）：**
+```bash
+docker run -d -p 5000:5000 \
   -v $(pwd)/tasks:/app/tasks \
   -v $(pwd)/logs:/app/logs \
-  task-run-service
+  --name task-service \
+  ezsky111/taskrunservice:latest
+```
+
+**仅挂载tasks目录（只共享任务文件）：**
+```bash
+docker run -d -p 5000:5000 \
+  -v $(pwd)/tasks:/app/tasks \
+  --name task-service \
+  ezsky111/taskrunservice:latest
+```
+
+### 挂载点说明
+
+| 挂载点 | 容器内路径 | 说明 | 是否必需 |
+|------|---------|------|--------|
+| `tasks` | `/app/tasks` | 存储Python任务脚本文件 | ❌ 可选 |
+| `logs` | `/app/logs` | 存储任务执行日志 | ❌ 可选 |
+
+**关键说明：**
+- 挂载是 **完全可选的**，不挂载时容器可独立运行
+- 如果 **不挂载**：任务和日志存储在容器内存，容器停止后数据丢失
+- 如果 **挂载宿主目录**：宿主机和容器可共享数据，容器停止后数据仍保留
+- 挂载使用 `bind mount` 方式，推荐使用 `$(pwd)` 确保路径正确
+
+### 端口配置
+
+| 端口 | 用途 | 说明 |
+|-----|------|------|
+| `5000` | Flask API 和前端服务 | HTTP服务端口，支持REST API和Web UI访问 |
+
+**端口映射示例：**
+```bash
+# 将容器5000端口映射到宿主8080端口
+docker run -d -p 8080:5000 ezsky111/taskrunservice:latest
+
+# 访问应用：http://localhost:8080
 ```
 
 ## 🔄 GitHub Actions工作流
@@ -235,19 +281,44 @@ LOG_LEVEL=DEBUG|INFO|WARNING|ERROR
 # Flask配置
 FLASK_ENV=production
 FLASK_DEBUG=0
+SECRET_KEY=your-secret-key-here
 
-# 任务配置
-TASKS_DIR=/app/tasks
-LOGS_DIR=/app/logs
-MAX_TASK_WORKERS=5          # 最大并发任务数
-TASK_TIMEOUT=3600           # 任务超时时间（秒）
+# 任务和日志目录（容器内路径，可选覆盖）
+TASKS_DIR=/app/tasks              # 任务脚本存储目录
+LOGS_DIR=/app/logs                # 任务执行日志存储目录
+
+# 任务执行配置
+MAX_TASK_WORKERS=5                # 最大并发执行任务数
+TASK_TIMEOUT=3600                 # 任务执行超时时间（秒，默认1小时）
 
 # 日志配置
-LOG_LEVEL=INFO
+LOG_LEVEL=INFO                    # 日志级别：DEBUG|INFO|WARNING|ERROR
 
-# 进程检查
-PROCESS_CHECK_INTERVAL=10   # 进程检查间隔（秒）
+# 进程监控配置
+PROCESS_CHECK_INTERVAL=10         # 进程检查间隔（秒）
 ```
+
+**常见环境变量用法：**
+
+```bash
+# 使用docker run传递环境变量
+docker run -d -p 5000:5000 \
+  -e FLASK_DEBUG=0 \
+  -e MAX_TASK_WORKERS=10 \
+  -e LOG_LEVEL=DEBUG \
+  -e TASK_TIMEOUT=7200 \
+  -v $(pwd)/tasks:/app/tasks \
+  ezsky111/taskrunservice:latest
+
+# 使用.env文件（通过docker-compose.yml）
+docker-compose --env-file .env up -d
+```
+
+**环境变量优先级（高到低）：**
+1. Docker运行时传递的 `-e` 参数
+2. `.env` 文件（docker-compose）
+3. Dockerfile中的 `ENV` 指令
+4. 代码中的默认值
 
 ## 📦 依赖清单
 
