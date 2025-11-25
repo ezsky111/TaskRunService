@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* 确保交互元素显示为可点击的指针光标 */
+@layer components {
+  button,
+  .btn,
+  [role="button"],
+  a[role="button"],
+  .close-icon,
+  .inline-flex,
+  .cursor-pointer {
+    cursor: pointer;
+  }
+}

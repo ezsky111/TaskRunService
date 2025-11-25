@@ -1,6 +1,8 @@
 // 数据库任务编排相关接口
 export const dbTaskApi = {
+  listTasks: () => api.get('/tasks/db'),
   createTask: (data) => api.post('/tasks/db', data),
+  updateTask: (taskId, data) => api.put(`/tasks/db/${taskId}`, data),
   executeTask: (taskId, context) => api.post(`/tasks/db/${taskId}/execute`, { context }),
   getTaskRuns: (taskId) => api.get(`/tasks/db/${taskId}/runs`),
   getRunLogs: (runId) => api.get(`/tasks/db/runs/${runId}/logs`),

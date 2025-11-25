@@ -51,6 +51,30 @@ class TaskService:
         finally:
             session.close()
 
+    def update_task(self, task_id, name, description, script_filenames):
+        """更新数据库中的任务及其脚本顺序"""
+        session = SessionLocal()
+        try:
+            task = session.query(Task).filter(Task.id == task_id).first()
+            if not task:
+                return False, '任务不存在'
+            task.name = name or task.name
+            task.description = description or task.description
+
+            # 删除旧的脚本并重新创建新的顺序
+            session.query(Script).filter(Script.task_id == task_id).delete()
+            for order, filename in enumerate(script_filenames):
+                script = Script(task_id=task_id, filename=filename, order=order)
+                session.add(script)
+
+            session.commit()
+            return True, '更新成功'
+        except Exception as e:
+            session.rollback()
+            return False, str(e)
+        finally:
+            session.close()
+
     def run_task(self, task_id, context=None):
         """执行任务，依次执行脚本，支持环境变量上下文"""
         session = SessionLocal()

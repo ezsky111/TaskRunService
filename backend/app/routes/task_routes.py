@@ -197,6 +197,22 @@ def create_db_task():
         logger.error(f"数据库任务创建失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
+@bp.route('/db/<int:task_id>', methods=['PUT'])
+def update_db_task(task_id):
+    """更新数据库任务（名称/描述/脚本顺序）"""
+    try:
+        data = request.get_json() or {}
+        name = data.get('name')
+        description = data.get('description', '')
+        script_filenames = data.get('scripts', [])
+
+        success, message = current_app.task_manager.task_service.update_task(task_id, name, description, script_filenames)
+        return jsonify({'success': success, 'message': message}), 200 if success else 400
+    except Exception as e:
+        logger.error(f"更新数据库任务失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @bp.route('/db/<int:task_id>/execute', methods=['POST'])
 def execute_db_task(task_id):
     """通过数据库任务编排执行任务"""

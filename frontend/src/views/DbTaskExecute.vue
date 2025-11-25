@@ -2,6 +2,9 @@
   <div class="db-task-execute">
     <div class="header">
       <h2>执行任务</h2>
+      <button v-if="inline" class="close-icon" @click="$emit('close')">
+        <X :size="18" />
+      </button>
     </div>
     <div class="form">
       <div class="form-group">
@@ -10,7 +13,7 @@
       </div>
       <div class="form-actions">
         <button @click="executeTask" class="btn btn-primary">执行</button>
-        <button @click="$router.back()" class="btn btn-secondary">返回</button>
+        <button @click="inline ? $emit('close') : $router.back()" class="btn btn-secondary">返回</button>
       </div>
     </div>
     <div v-if="runId" class="result">
@@ -21,11 +24,14 @@
 
 <script>
 import { dbTaskApi } from '../api/index.js'
+import { X } from 'lucide-vue-next'
 
 export default {
   name: 'DbTaskExecute',
+  components: { X },
   props: {
-    taskId: [String, Number]
+    taskId: [String, Number],
+    inline: { type: Boolean, default: false }
   },
   data() {
     return {
@@ -40,16 +46,20 @@ export default {
         try {
           context = JSON.parse(this.contextStr)
         } catch (e) {
-          alert('环境变量格式错误，应为JSON')
+          this.$root.$notify?.warning('环境变量格式错误，应为JSON')
           return
         }
       }
       try {
         const res = await dbTaskApi.executeTask(Number(this.taskId), context)
         this.runId = res.data.run_id
-        alert('任务已提交: ' + this.runId)
+        this.$root.$notify?.success('任务已提交: ' + this.runId)
+        // 如果在内联模式下，通知父组件执行已提交
+        if (this.inline) {
+          this.$emit('executed', this.runId)
+        }
       } catch (error) {
-        alert('执行失败: ' + error.response?.data?.message || error.message)
+        this.$root.$notify?.error('执行失败: ' + (error.response?.data?.message || error.message))
       }
     }
   }
@@ -68,4 +78,19 @@ export default {
 .btn-primary:hover { background: #5568d3; }
 .btn-secondary { background: #6c757d; color: white; }
 .result { margin-top: 2rem; color: #3182ce; font-weight: 600; }
+
+.close-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  color: #475569;
+}
+.close-icon:hover { background: rgba(0,0,0,0.04); }
+
+.header { position: relative; }
 </style>

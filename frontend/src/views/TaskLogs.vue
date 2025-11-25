@@ -1,40 +1,59 @@
 <template>
-  <div class="task-logs">
-    <div class="header">
-      <h2>编排任务日志</h2>
-      <button @click="loadTasks" class="btn btn-primary">刷新</button>
-    </div>
-    <div v-if="loading" class="loading">加载中...</div>
-    <div v-else class="logs-container">
-      <div class="task-selector">
-        <label>选择任务:</label>
-        <select v-model="selectedTaskId" @change="loadRuns" class="task-select">
-          <option value="">-- 选择任务 --</option>
-          <option v-for="task in tasks" :key="task.id" :value="task.id">
-            {{ task.name }} (ID: {{ task.id }})
-          </option>
-        </select>
-      </div>
-      
-      <div v-if="selectedTaskId" class="runs-section">
-        <h3>运行记录</h3>
-        <div v-if="runs.length === 0" class="empty">暂无运行记录</div>
-        <div v-else class="runs-list">
-          <div v-for="run in runs" :key="run.run_id" class="run-item" @click="viewRunLogs(run.run_id)">
-            <span>运行ID: {{ run.run_id }}</span>
-            <span class="status" :class="run.status">{{ run.status }}</span>
-            <span>开始: {{ formatDate(run.started_at) }}</span>
-            <span v-if="run.finished_at">结束: {{ formatDate(run.finished_at) }}</span>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+    <div class="space-y-6">
+      <!-- 任务选择器卡片 -->
+      <div class="overflow-hidden rounded-lg bg-white shadow-sm">
+        <div class="border-b border-slate-200 bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-4">
+          <h3 class="text-lg font-semibold text-slate-900">选择任务查看执行记录</h3>
+          <p class="mt-1 text-sm text-slate-600">选择一个任务后，即可查看该任务的所有运行记录及详细日志</p>
+        </div>
+
+        <div class="space-y-4 px-6 py-6"  style="position: relative;">
+          <!-- 搜索 + 下拉选择 -->
+          <div class="space-y-2" >
+            <label class="block text-sm font-semibold text-slate-700">任务</label>
+            <Select
+            
+              v-model="selectedTaskId"
+              :options="taskOptions"
+              placeholder="-- 选择任务 --"
+              @change="loadRuns"
+            />
+          </div>
+
+          <!-- 任务信息（如果已选择） -->
+          <div v-if="selectedTaskId && taskInfo" class="space-y-2">
+            <div class="rounded-lg bg-blue-50 p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs font-semibold text-blue-700 uppercase">当前任务</p>
+                  <p class="mt-1 text-lg font-bold text-blue-900">{{ taskInfo.name }}</p>
+                  <p v-if="taskInfo.description" class="mt-1 text-sm text-blue-700">
+                    {{ taskInfo.description }}
+                  </p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs text-blue-600">ID: {{ taskInfo.id }}</p>
+                  <p class="mt-2 text-xs font-semibold text-blue-600">
+                    {{ taskInfo.scripts?.length || 0 }} 个脚本
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      
-      <div v-if="currentLogs.length > 0" class="logs-section">
-        <h3>执行日志</h3>
-        <div v-for="log in currentLogs" :key="log.script" class="log-block">
-          <div class="log-header">{{ log.script }}</div>
-          <pre class="log-content">{{ log.output }}</pre>
-        </div>
+
+      <!-- 运行列表（当选择任务时显示） -->
+      <div v-if="selectedTaskId">
+        <RunsList
+          :runs="runs"
+          :task-info="taskInfo"
+          :loading="loading"
+          :show-back-button="false"
+          @refresh="loadRuns"
+          @view-logs="viewLogs"
+        />
       </div>
     </div>
   </div>
@@ -42,23 +61,34 @@
 
 <script>
 import { dbTaskApi } from '../api/index.js'
+import { Select } from '@/components/ui'
+import RunsList from '@/components/RunsList.vue'
 
 export default {
   name: 'TaskLogs',
+  components: { RunsList, Select },
   data() {
     return {
       tasks: [],
       runs: [],
-      currentLogs: [],
+      taskInfo: null,
       selectedTaskId: '',
-      loading: true
+      loading: false
+    }
+  },
+  computed: {
+    taskOptions() {
+      return this.tasks.map((task) => ({
+        value: task.id,
+        label: `${task.name}${task.description ? ` - ${task.description}` : ''}`
+      }))
     }
   },
   methods: {
     async loadTasks() {
       try {
         this.loading = true
-        const res = await this.$http.get('/tasks/db')
+        const res = await dbTaskApi.listTasks()
         this.tasks = res.data.data || []
       } catch (error) {
         console.error('加载任务列表失败:', error)
@@ -69,28 +99,34 @@ export default {
     async loadRuns() {
       if (!this.selectedTaskId) {
         this.runs = []
-        this.currentLogs = []
+        this.taskInfo = null
         return
       }
       try {
-        const res = await dbTaskApi.getTaskRuns(this.selectedTaskId)
-        this.runs = res.data.data || []
-        this.currentLogs = []
+        this.loading = true
+        // 从已加载的任务列表中查找任务详情
+        this.taskInfo = this.tasks.find(t => t.id == this.selectedTaskId) || null
+        const runsRes = await dbTaskApi.getTaskRuns(this.selectedTaskId)
+        this.runs = runsRes.data.data || []
       } catch (error) {
         console.error('加载运行记录失败:', error)
+      } finally {
+        this.loading = false
       }
     },
-    async viewRunLogs(runId) {
+    async viewLogs(runId, callback) {
       try {
-        const res = await dbTaskApi.getRunLogs(runId)
-        this.currentLogs = res.data.data || []
+        const [logsRes, contextsRes] = await Promise.all([
+          dbTaskApi.getRunLogs(runId),
+          dbTaskApi.getRunContexts(runId)
+        ])
+        const logs = logsRes.data.data || []
+        const contexts = contextsRes.data.data || []
+        callback(logs, contexts)
       } catch (error) {
         console.error('加载日志失败:', error)
+        callback([], [])
       }
-    },
-    formatDate(dateStr) {
-      if (!dateStr) return '-'
-      return new Date(dateStr).toLocaleString('zh-CN')
     }
   },
   mounted() {
@@ -99,28 +135,7 @@ export default {
 }
 </script>
 
-<style scoped>
-.task-logs { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-.header h2 { font-size: 1.5rem; }
-.loading, .empty { text-align: center; padding: 2rem; color: #999; }
-.logs-container { }
-.task-selector { margin-bottom: 2rem; }
-.task-selector label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
-.task-select { padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 100%; max-width: 400px; }
-.runs-section, .logs-section { margin-bottom: 2rem; }
-.runs-section h3, .logs-section h3 { margin-bottom: 1rem; font-size: 1.1rem; }
-.runs-list { }
-.run-item { display: flex; gap: 2rem; align-items: center; padding: 1rem; margin-bottom: 0.75rem; background: #f5f5f5; border-radius: 4px; cursor: pointer; transition: background 0.3s; }
-.run-item:hover { background: #efefef; }
-.status { padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-.status.success { background: #d1e7dd; color: #0f5132; }
-.status.failed, .status.error, .status.timeout { background: #f8d7da; color: #842029; }
-.status.running { background: #cfe2ff; color: #084298; }
-.log-block { margin-bottom: 1.5rem; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
-.log-header { background: #f5f5f5; padding: 0.75rem; font-weight: 600; border-bottom: 1px solid #ddd; }
-.log-content { background: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace; font-size: 0.85rem; padding: 1rem; margin: 0; max-height: 400px; overflow: auto; }
-.btn { padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; transition: all 0.3s; }
+<style>
 .btn-primary { background: #667eea; color: white; }
 .btn-small { padding: 0.25rem 0.75rem; font-size: 0.8rem; }
 </style>

@@ -1,47 +1,151 @@
 <template>
-  <div class="task-list">
-    <div class="header">
-      <h2>编排任务</h2>
-      <router-link to="/dbtasks/new" class="btn btn-primary">+ 新建编排任务</router-link>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+    <!-- 页头 -->
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900">编排任务</h1>
+        <p class="mt-1 text-sm text-slate-600">管理和执行任务编排</p>
+      </div>
+      <button
+        @click="showNewTaskModal = true"
+        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white shadow-md transition hover:bg-blue-700 hover:shadow-lg"
+      >
+        <Plus :size="20" />
+        新建任务
+      </button>
     </div>
-    
-    <div v-if="loading" class="loading">加载中...</div>
-    
-    <div v-else-if="tasks.length === 0" class="empty">
-      <p>暂无编排任务，<router-link to="/dbtasks/new">创建新任务</router-link></p>
+
+    <!-- 加载状态 -->
+    <div v-if="loading" class="flex flex-col items-center justify-center rounded-lg bg-white p-12 shadow-sm">
+      <div class="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+      <p class="text-slate-600">加载中...</p>
     </div>
-    
-    <div v-else class="tasks-grid">
-      <div v-for="task in tasks" :key="task.id" class="task-card">
-        <div class="task-header">
-          <h3>{{ task.name }}</h3>
-          <span class="task-id">ID: {{ task.id }}</span>
-        </div>
-        <div class="task-info">
-          <p>{{ task.description || '无描述' }}</p>
-          <p class="scripts-info">脚本数: {{ task.scripts.length }}</p>
-        </div>
-        <div class="task-actions">
-          <router-link :to="`/dbtasks/${task.id}/runs`" class="btn btn-small btn-info">查看运行</router-link>
-          <router-link :to="`/dbtasks/${task.id}/execute`" class="btn btn-small btn-success">执行</router-link>
-        </div>
+
+    <!-- 空状态 -->
+    <div v-else-if="tasks.length === 0" class="flex flex-col items-center justify-center rounded-lg bg-white p-12 shadow-sm">
+      <FileText class="mb-4 text-slate-400" :size="48" />
+      <h3 class="text-lg font-semibold text-slate-900">暂无任务</h3>
+      <p class="mt-1 text-slate-600">还没有创建任何编排任务</p>
+      <button
+        @click="showNewTaskModal = true"
+        class="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white shadow-md transition hover:bg-blue-700 hover:shadow-lg"
+      >
+        <Plus :size="18" />
+        创建第一个任务
+      </button>
+    </div>
+
+    <!-- 任务列表 -->
+    <div v-else class="overflow-hidden rounded-lg bg-white shadow-sm">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-slate-200 bg-slate-50">
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">任务名称</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">描述</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">脚本数</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">ID</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">操作</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          <tr v-for="task in tasks" :key="task.id" class="transition hover:bg-blue-50">
+            <td class="px-6 py-4">
+              <span class="font-semibold text-slate-900">{{ task.name }}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-600">{{ task.description || '-' }}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                {{ task.scripts.length }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <code class="rounded bg-slate-100 px-2.5 py-1 font-mono text-sm text-slate-700">{{ task.id }}</code>
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-2">
+                <button
+                  @click="openExecute(task.id)"
+                  class="inline-flex items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-700 transition hover:bg-blue-200"
+                  title="执行任务"
+                >
+                  <Play :size="18" />
+                </button>
+                <button
+                  @click="openEditor(task)"
+                  class="inline-flex items-center justify-center rounded-lg bg-green-100 p-2 text-green-700 transition hover:bg-green-200"
+                  title="编辑任务"
+                >
+                  编辑
+                </button>
+                <router-link
+                  :to="`/dbtasks/${task.id}/runs`"
+                  class="inline-flex items-center justify-center rounded-lg bg-amber-100 p-2 text-amber-700 transition hover:bg-amber-200"
+                  title="查看历史"
+                >
+                  <BarChart3 :size="18" />
+                </router-link>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- 新建任务对话框 -->
+    <div v-if="showNewTaskModal" class="modal-backdrop" @click.self="showNewTaskModal = false">
+      <div class="modal-panel">
+        <DbTaskEditor :inline="true" @close="showNewTaskModal = false" @created="onTaskCreated" />
+      </div>
+    </div>
+    <!-- 执行任务对话框 -->
+    <div v-if="showExecuteModal" class="modal-backdrop" @click.self="showExecuteModal = false">
+      <div class="modal-panel">
+        <DbTaskExecute :inline="true" :taskId="executeTaskId" @close="showExecuteModal = false" @executed="onExecuted" />
+      </div>
+    </div>
+    <!-- 编辑任务对话框 -->
+    <div v-if="showEditModal" class="modal-backdrop" @click.self="showEditModal = false">
+      <div class="modal-panel">
+        <DbTaskEditor :inline="true" :task="editTask" @close="showEditModal = false" @updated="onTaskUpdated" />
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { dbTaskApi } from '../api/index.js'
+import { Plus, Play, BarChart3, FileText } from 'lucide-vue-next'
+import DbTaskEditor from './DbTaskEditor.vue'
+import DbTaskExecute from './DbTaskExecute.vue'
 
 export default {
   name: 'TaskList',
+  components: {
+    Plus,
+    Play,
+    BarChart3,
+    FileText,
+    DbTaskEditor,
+    DbTaskExecute
+  },
   data() {
     return {
       tasks: [],
-      loading: true
+      loading: true,
+      showNewTaskModal: false,
+      showExecuteModal: false,
+      executeTaskId: null
+      ,showEditModal: false,
+      editTask: null
     }
   },
   methods: {
+    openExecute(taskId) {
+      this.executeTaskId = taskId
+      this.showExecuteModal = true
+    },
+    openEditor(task) {
+      this.editTask = task
+      this.showEditModal = true
+    },
     async loadTasks() {
       try {
         this.loading = true
@@ -49,194 +153,48 @@ export default {
         this.tasks = res.data.data || []
       } catch (error) {
         console.error('加载任务列表失败:', error)
-        alert('加载任务列表失败: ' + error.message)
+        this.$notify?.('加载任务列表失败: ' + error.message, 'error')
       } finally {
         this.loading = false
       }
     },
-    formatDate(dateStr) {
-      return new Date(dateStr).toLocaleString('zh-CN')
+    onTaskCreated(taskId) {
+      // 任务创建后刷新列表并关闭对话框
+      this.showNewTaskModal = false
+      this.loadTasks()
+      this.$notify?.('任务创建成功: ' + taskId, 'success')
+    }
+    ,onTaskUpdated(taskId) {
+      this.showEditModal = false
+      this.loadTasks()
+      this.$notify?.('任务更新成功: ' + taskId, 'success')
+    }
+    ,onExecuted(runId) {
+      this.$notify?.('任务已提交: ' + runId, 'success')
     }
   },
   mounted() {
     this.loadTasks()
-    // 每 5 秒刷新一次
-    this.timer = setInterval(() => {
-      this.loadTasks()
-    }, 5000)
-  },
-  beforeUnmount() {
-    if (this.timer) {
-      clearInterval(this.timer)
-    }
   }
 }
 </script>
 
 <style scoped>
-.task-list {
-  background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.header h2 {
-  font-size: 1.5rem;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-success {
-  background: #28a745;
-  color: white;
-}
-
-.btn-info {
-  background: #17a2b8;
-  color: white;
-}
-
-.btn-danger {
-  background: #dc3545;
-  color: white;
-}
-
-.btn-small {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-.loading, .empty {
-  text-align: center;
-  padding: 2rem;
-  color: #999;
-}
-
-.tasks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.task-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 1.5rem;
-  background: #fafafa;
-  transition: all 0.3s;
-}
-
-.task-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  border-bottom: 2px solid #667eea;
-  padding-bottom: 0.5rem;
-}
-
-.task-header h3 {
-  margin: 0;
-  color: #333;
-}
-
-.task-id {
-  font-size: 0.8rem;
-  color: #999;
-  background: #e9ecef;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-}
-
-.task-info {
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.task-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.active-section {
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 2px solid #ddd;
-}
-
-.active-tasks {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.active-task {
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f0f7ff;
-  border-left: 4px solid #667eea;
-  border-radius: 4px;
+  justify-content: center;
+  z-index: 60;
 }
+.modal-panel {
+  width: 96%;
+  max-width: 900px;
+}
+</style>
 
-.status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.status.running {
-  background: #cfe2ff;
-  color: #084298;
-}
-
-.status.success {
-  background: #d1e7dd;
-  color: #0f5132;
-}
-
-.status.failed {
-  background: #f8d7da;
-  color: #842029;
-}
+<style scoped>
+/* Using Tailwind CSS - no custom styles needed */
 </style>
