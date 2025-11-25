@@ -1,10 +1,26 @@
+# Node modules
+node_modules
+frontend/node_modules
+
+# Python cache
+*.pyc
+__pycache__
+
+# Git
+.git
+.gitignore
+
+# Editor
+.vscode
+
+# Keep frontend build in context so CI-built assets are included in the image
+# do NOT ignore frontend/dist
 .dockerignore
 .git
 .github
 .gitignore
 README.md
 node_modules
-frontend/dist
 frontend/node_modules
 backend/__pycache__
 backend/*.pyc
