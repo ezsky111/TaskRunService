@@ -17,7 +17,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # 复制后端代码
 COPY backend/ /app/
-
+VOLUME /app/tasks
+VOLUME /app/logs
 # 复制由 CI 预构建的前端静态资源到镜像根目录下的 /frontend/dist
 # 注意：不要在本地 Docker 构建上下文中忽略 `frontend/dist`，否则这一步会失败。
 COPY frontend/dist /frontend/dist
