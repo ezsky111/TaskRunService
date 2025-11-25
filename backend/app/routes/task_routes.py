@@ -236,13 +236,8 @@ def get_db_run_logs(run_id):
     """获取某次数据库任务运行的所有脚本日志"""
     try:
         logs = current_app.task_manager.task_service.get_run_logs(run_id)
-        return jsonify({'success': True, 'data': [
-            {
-                'script': l.script_filename,
-                'output': l.output,
-                'created_at': l.created_at
-            } for l in logs
-        ]})
+        # logs now returned as list of dicts with keys: script, output, created_at
+        return jsonify({'success': True, 'data': logs})
     except Exception as e:
         logger.error(f"获取数据库任务日志失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -252,13 +247,8 @@ def get_db_run_contexts(run_id):
     """获取某次数据库任务运行的环境变量历史"""
     try:
         contexts = current_app.task_manager.task_service.get_run_contexts(run_id)
-        return jsonify({'success': True, 'data': [
-            {
-                'script': c.script_filename,
-                'context': c.context,
-                'created_at': c.created_at
-            } for c in contexts
-        ]})
+        # contexts returned as list of dicts with keys: script, context, created_at
+        return jsonify({'success': True, 'data': contexts})
     except Exception as e:
         logger.error(f"获取数据库任务环境变量历史失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500

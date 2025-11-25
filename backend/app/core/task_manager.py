@@ -2,7 +2,7 @@ import os
 import json
 import uuid
 import threading
-import subprocess
+from app.utils.script_runner import run_script
 from datetime import datetime
 from pathlib import Path
 from app.utils.logger import setup_logger
@@ -117,31 +117,78 @@ class TaskManager:
     def _execute_task_thread(self, task_id, run_id, task_path, params):
         """后台线程执行任务"""
         log_file = os.path.join(self.logs_dir, f"{task_id}_{run_id}.log")
-        
+        manager = None
         try:
             # 构建命令
             cmd = ['python', task_path]
             if params:
                 cmd.extend([str(p) for p in params])
-            
-            # 执行任务
+
+            # 使用 Manager 提供共享上下文代理，方便脚本通过 SDK 读取/写入
+            from multiprocessing import Manager
+            manager = Manager()
+            context_proxy = manager.dict()
+
+            # create a log queue and start consumer to capture streaming logs
+            from multiprocessing import Queue as MPQueue
+            log_queue = MPQueue()
+
+            stop_evt = threading.Event()
+            stream_logs = []
+            def _consume(q, stop_event, storage, logfile_path):
+                try:
+                    with open(logfile_path, 'a', encoding='utf-8') as lf:
+                        while not stop_event.is_set() or not q.empty():
+                            try:
+                                level, msg = q.get(timeout=0.5)
+                                line = f"[{level}] {msg}\n"
+                                storage.append(line)
+                                lf.write(line)
+                                lf.flush()
+                            except Exception:
+                                continue
+                except Exception:
+                    pass
+
+            logfile_path = os.path.join(self.logs_dir, f"{task_id}_{run_id}.log")
+            consumer_th = threading.Thread(target=_consume, args=(log_queue, stop_evt, stream_logs, logfile_path))
+            consumer_th.daemon = True
+            consumer_th.start()
+
+            # 调用运行器
+            params_for_run = cmd[1:] if len(cmd) > 1 else None
+            output, returncode, timed_out = run_script(
+                task_path,
+                params=params_for_run,
+                env=None,
+                cwd=self.tasks_dir,
+                timeout=self.task_timeout,
+                context_proxy=context_proxy,
+                log_queue=log_queue,
+            )
+
             with open(log_file, 'w', encoding='utf-8') as lf:
-                result = subprocess.run(
-                    cmd,
-                    stdout=lf,
-                    stderr=subprocess.STDOUT,
-                    timeout=self.task_timeout,
-                    cwd=self.tasks_dir
-                )
-            
-            status = 'success' if result.returncode == 0 else 'failed'
+                lf.write(output or '')
+
+            if timed_out:
+                status = 'timeout'
+            else:
+                status = 'success' if returncode == 0 else 'failed'
+
+            # stop consumer and attach stream logs to active_tasks if present
+            try:
+                stop_evt.set()
+                consumer_th.join(timeout=1)
+            except Exception:
+                pass
+            try:
+                if run_id in self.active_tasks:
+                    self.active_tasks[run_id].setdefault('stream_logs', []).extend(stream_logs)
+            except Exception:
+                pass
+
             logger.info(f"任务执行完成: {task_id}, run_id: {run_id}, 状态: {status}")
-            
-        except subprocess.TimeoutExpired:
-            with open(log_file, 'a', encoding='utf-8') as lf:
-                lf.write(f"\n[ERROR] 任务执行超时 ({self.task_timeout}秒)")
-            logger.error(f"任务执行超时: {task_id}, run_id: {run_id}")
-            status = 'timeout'
+
         except Exception as e:
             with open(log_file, 'a', encoding='utf-8') as lf:
                 lf.write(f"\n[ERROR] 执行错误: {str(e)}")
@@ -153,23 +200,18 @@ class TaskManager:
                 if run_id in self.active_tasks:
                     self.active_tasks[run_id]['status'] = status
                     self.active_tasks[run_id]['end_time'] = datetime.now().isoformat()
-            
-            # 释放进程锁
-            self.process_lock.release_lock(task_id)
-    
-    def get_task_status(self, run_id):
-        """获取任务执行状态"""
-        with self.lock:
-            if run_id in self.active_tasks:
-                task = self.active_tasks[run_id]
-                return {
-                    'run_id': run_id,
-                    'task_id': task['task_id'],
-                    'status': task['status'],
-                    'start_time': task['start_time'],
-                    'end_time': task.get('end_time')
-                }
-        return None
+
+            # 关闭 manager（如果存在）并释放进程锁
+            try:
+                if manager is not None:
+                    manager.shutdown()
+            except Exception:
+                pass
+
+            try:
+                self.process_lock.release_lock(task_id)
+            except Exception:
+                pass
     
     def get_active_tasks(self):
         """获取所有活跃任务"""
