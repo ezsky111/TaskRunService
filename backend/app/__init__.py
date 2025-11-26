@@ -12,8 +12,12 @@ def create_app():
     from app.utils.logger import setup_logger
     logger = setup_logger(__name__)
     
-    app = Flask(__name__, static_folder='../../frontend/dist', static_url_path='/')
-    
+    # 使用运行时解析的绝对路径来定位前端构建产物，避免在不同工作目录下路径解析错误
+    base_dir = os.path.dirname(__file__)
+    static_dir = os.path.abspath(os.path.join(base_dir, '../../frontend/dist'))
+    # 禁用 Flask 自动注册的静态路由（static_url_path=None），使用自定义回退逻辑
+    app = Flask(__name__, static_folder=static_dir, static_url_path=None)
+
     # 配置应用
     app.config.from_object(Config)
     
@@ -40,8 +44,15 @@ def create_app():
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve_frontend(path):
-        if path and os.path.exists(os.path.join(app.static_folder, path)):
+        # 如果请求的是静态资源且存在，直接返回；否则返回 SPA 的 index.html 以支持前端路由
+        requested_path = os.path.join(app.static_folder, path)
+        if path and os.path.exists(requested_path):
             return app.send_static_file(path)
+        # 若 index.html 丢失，显式抛出 404 以便更快定位问题
+        index_file = os.path.join(app.static_folder, 'index.html')
+        if not os.path.exists(index_file):
+            logger.error(f"前端静态文件未找到: {index_file}")
+            return ("Frontend build not found", 404)
         return app.send_static_file('index.html')
     
     logger.info("应用初始化完成")

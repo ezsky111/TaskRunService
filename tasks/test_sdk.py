@@ -4,9 +4,9 @@ from datetime import datetime
 from app.utils import task_sdk
 
 def main():
-    print('test_sdk starting')
+    task_sdk.log('test_sdk starting')
     task_sdk.update_context({'from_test': True, 'ts': datetime.now().isoformat()})
-    print('test_sdk done')
+    task_sdk.log('test_sdk done')
     return 0
 
 if __name__ == '__main__':

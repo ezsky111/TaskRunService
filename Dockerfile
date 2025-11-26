@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
 
 # 在容器内设置任务目录环境变量（容器运行时优先使用此值）
 ENV TASKS_DIR=/app/tasks
+ENV LOGS_DIR=/app/logs
 
 # 复制后端依赖并安装（CI 已构建前端到 `frontend/dist`）
 COPY backend/requirements.txt /app/requirements.txt

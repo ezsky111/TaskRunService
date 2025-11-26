@@ -9,8 +9,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     
     # 任务配置
-    TASKS_DIR = os.getenv('TASKS_DIR', '/workspaces/TaskRunService/tasks')
-    LOGS_DIR = os.getenv('LOGS_DIR', '/workspaces/TaskRunService/logs')
+    TASKS_DIR = os.getenv('TASKS_DIR', '/app/tasks')
+    LOGS_DIR = os.getenv('LOGS_DIR', '/app/logs')
     MAX_TASK_WORKERS = int(os.getenv('MAX_TASK_WORKERS', '5'))
     TASK_TIMEOUT = int(os.getenv('TASK_TIMEOUT', '3600'))  # 1小时
     
