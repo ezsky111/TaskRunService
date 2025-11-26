@@ -36,7 +36,8 @@
     </div>
 
     <!-- 任务列表 -->
-    <div v-else class="overflow-hidden rounded-lg bg-white shadow-sm">
+    <div v-else class="overflow-hidden rounded-lg bg-white shadow-sm list-container">
+      <div class="responsive-table">
       <table class="w-full">
         <thead>
           <tr class="border-b border-slate-200 bg-slate-50">
@@ -49,20 +50,20 @@
         </thead>
         <tbody class="divide-y divide-slate-200">
           <tr v-for="task in tasks" :key="task.id" class="transition hover:bg-blue-50">
-            <td class="px-6 py-4">
+            <td class="px-6 py-4" data-label="任务名称">
               <span class="font-semibold text-slate-900">{{ task.name }}</span>
             </td>
-            <td class="px-6 py-4 text-sm text-slate-600">{{ task.description || '-' }}</td>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4 text-sm text-slate-600" data-label="描述">{{ task.description || '-' }}</td>
+            <td class="px-6 py-4" data-label="脚本数">
               <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
                 {{ task.scripts.length }}
               </span>
             </td>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4" data-label="ID">
               <code class="rounded bg-slate-100 px-2.5 py-1 font-mono text-sm text-slate-700">{{ task.id }}</code>
             </td>
-            <td class="px-6 py-4">
-              <div class="flex items-center gap-2">
+            <td class="px-6 py-4" data-label="操作">
+              <div class="flex items-center gap-2 action-buttons">
                 <button
                   @click="openExecute(task.id)"
                   class="inline-flex items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-700 transition hover:bg-blue-200"
@@ -89,6 +90,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
     <!-- 新建任务对话框 -->
     <div v-if="showNewTaskModal" class="modal-backdrop" @click.self="showNewTaskModal = false">
@@ -197,4 +199,53 @@ export default {
 
 <style scoped>
 /* Using Tailwind CSS - no custom styles needed */
+</style>
+
+<style scoped>
+/* Responsive table -> card layout on small screens */
+.responsive-table{width:100%;overflow-x:auto}
+
+@media (max-width: 768px){
+  .list-container { background: transparent; box-shadow: none; border: none; overflow: visible; }
+
+  .responsive-table table,
+  .responsive-table thead,
+  .responsive-table tbody,
+  .responsive-table th,
+  .responsive-table td,
+  .responsive-table tr { display:block; }
+
+  .responsive-table thead { display:none; }
+
+  .responsive-table tbody tr {
+    margin: 0 0 16px;
+    padding: 14px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(15,23,42,0.04);
+  }
+
+  .responsive-table tbody tr:last-child { margin-bottom: 0 }
+
+  .responsive-table td {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(15,23,42,0.03);
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #475569;
+    margin-right: 12px;
+  }
+
+  .responsive-table td:last-child { border-bottom:0 }
+
+  .action-buttons{display:flex;gap:8px}
+
+  .modal-panel{ width: 96%; max-width: 95%; margin: 0 8px }
+}
 </style>

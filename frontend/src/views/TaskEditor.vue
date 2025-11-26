@@ -142,4 +142,14 @@ export default {
   background: #6c757d;
   color: white;
 }
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .task-editor { padding: 1rem; }
+  .header h2 { font-size: 1.25rem; margin-bottom: 1rem }
+  .form-group input, .form-group textarea { font-size: 0.9rem }
+  .form-group textarea { min-height: 180px }
+  .form-actions { flex-direction: column-reverse; gap: 0.75rem }
+  .btn { width: 100% }
+}
 </style>

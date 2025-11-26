@@ -2,7 +2,7 @@
   <div class="app">
     <Notification ref="notificationRef" />
 
-    <aside class="sidebar" :class="{ collapsed: isCollapsed }">
+    <aside class="sidebar" :class="{ collapsed: isCollapsed, open: mobileOpen }" role="navigation">
       <div class="brand">
         <div class="logo">TRS</div>
         <div class="title">Task Run Service</div>
@@ -56,9 +56,12 @@
 
     <div class="content">
       <header class="topbar">
-        <div class="top-left">
-          <h2 class="page-title">管理面板</h2>
-        </div>
+          <div class="top-left">
+            <button class="mobile-toggle" @click="mobileOpen = !mobileOpen" aria-label="打开菜单">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"></path><path d="M3 6h18"></path><path d="M3 18h18"></path></svg>
+            </button>
+            <h2 class="page-title">管理面板</h2>
+          </div>
         <div class="top-right">
           <Notification ref="notificationRef" />
         </div>
@@ -68,6 +71,9 @@
         <router-view></router-view>
       </main>
     </div>
+
+    <!-- 移动端遮罩层 -->
+    <div v-if="mobileOpen" class="backdrop" @click="mobileOpen = false" aria-hidden="true"></div>
   </div>
 </template>
 
@@ -78,7 +84,7 @@ export default {
   name: 'App',
   components: { Notification },
   data() {
-    return { isCollapsed: false }
+    return { isCollapsed: false, mobileOpen: false }
   },
   mounted() {
     this.$root.$notify = {
@@ -87,6 +93,20 @@ export default {
       warning: (msg) => this.$refs.notificationRef?.warning(msg),
       info: (msg) => this.$refs.notificationRef?.info(msg)
     }
+
+    // ESC 键关闭移动侧栏
+    this._mobileKeyHandler = (e) => {
+      if (e.key === 'Escape' && this.mobileOpen) this.mobileOpen = false
+    }
+    window.addEventListener('keydown', this._mobileKeyHandler)
+    // 切换路由时自动关闭移动侧栏
+    this.$watch('$route', () => { this.mobileOpen = false })
+  },
+  beforeDestroy() {
+    window.removeEventListener('keydown', this._mobileKeyHandler)
+  },
+  beforeUnmount() {
+    window.removeEventListener('keydown', this._mobileKeyHandler)
   }
 }
 </script>
@@ -135,10 +155,19 @@ export default {
 .content{flex:1;display:flex;flex-direction:column}
 .topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;background:transparent;border-bottom:1px solid rgba(15,23,42,0.04)}
 .page-title{margin:0;color:var(--primary-600);font-size:1.05rem}
-.main{padding:1.5rem}
+
+/* Mobile drawer transitions and styles */
+.sidebar{transition:transform .25s ease, width .15s ease}
+.mobile-toggle{display:none;background:transparent;border:0;padding:6px;margin-right:8px;cursor:pointer}
+.backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.45);z-index:20}
 
 @media(max-width:900px){
-  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:30;transform:translateX(0)}
-  .content{margin-left:72px}
+  /* 默认小屏隐藏侧栏，通过添加 .open 展示 */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:30;transform:translateX(-100%);width:220px}
+  .sidebar.open{transform:translateX(0)}
+  .content{margin-left:0}
+  .mobile-toggle{display:inline-flex;align-items:center;justify-content:center}
+  .brand .title{display:inline-block}
+  .menu-item .label{white-space:nowrap}
 }
 </style>

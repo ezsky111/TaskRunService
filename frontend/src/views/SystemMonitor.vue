@@ -69,10 +69,10 @@
         </thead>
         <tbody>
           <tr v-for="proc in processes" :key="proc.pid">
-            <td>{{ proc.pid }}</td>
-            <td>{{ proc.name }}</td>
-            <td>{{ proc.status }}</td>
-            <td>{{ (proc.memory_rss / 1024 / 1024).toFixed(2) }}</td>
+            <td data-label="PID">{{ proc.pid }}</td>
+            <td data-label="进程名">{{ proc.name }}</td>
+            <td data-label="状态">{{ proc.status }}</td>
+            <td data-label="内存 (MB)">{{ (proc.memory_rss / 1024 / 1024).toFixed(2) }}</td>
           </tr>
         </tbody>
       </table>
@@ -231,5 +231,41 @@ export default {
 
 .btn-primary:hover {
   background: #5568d3;
+}
+
+/* Mobile: convert process table into card-style rows */
+@media (max-width: 768px) {
+  .monitor-grid { grid-template-columns: 1fr; }
+
+  .process-table, .process-table thead, .process-table tbody, .process-table th, .process-table td, .process-table tr {
+    display: block;
+  }
+
+  .process-table thead { display: none; }
+
+  .process-table tr {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 12px;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+  }
+
+  .process-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(15,23,42,0.03);
+  }
+
+  .process-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #475569;
+    margin-right: 12px;
+  }
+
+  .process-table td:last-child { border-bottom: 0 }
 }
 </style>
