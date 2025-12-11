@@ -16,7 +16,7 @@
  * - 响应数据解析
  *
  * @module types/common/response
- * @author Art Design Pro Team
+ * @author TaskRunserver Team
  */
 
 /** 基础 API 响应结构 */
@@ -25,6 +25,7 @@ export interface BaseResponse<T = unknown> {
   code: number
   /** 消息 */
   msg: string
+  success: boolean
   /** 数据 */
   data: T
 }

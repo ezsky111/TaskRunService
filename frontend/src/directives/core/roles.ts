@@ -19,10 +19,10 @@
  *   <el-button v-roles="'R_SUPER'">超级管理员功能</el-button>
  *
  *   <!-- 多个角色 - 超级管理员或普通管理员可见 -->
- *   <el-button v-roles="['R_SUPER', 'R_ADMIN']">管理员功能</el-button>
+ *   <el-button v-roles="['R_SUPER', 'admin']">管理员功能</el-button>
  *
  *   <!-- 应用到任意元素 -->
- *   <div v-roles="['R_SUPER', 'R_ADMIN', 'R_USER']">
+ *   <div v-roles="['R_SUPER', 'admin', 'R_USER']">
  *     所有登录用户可见的内容
  *   </div>
  * </template>
@@ -41,7 +41,7 @@
  * - 如需基于具体操作的细粒度权限控制，请使用 v-auth 指令
  *
  * @module directives/roles
- * @author Art Design Pro Team
+ * @author TaskRunserver Team
  */
 
 import { useUserStore } from '@/store/modules/user'

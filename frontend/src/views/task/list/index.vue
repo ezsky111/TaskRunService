@@ -37,6 +37,7 @@ import { ElTag, ElMessage, ElMessageBox, ElButton, ElSpace, ElCard } from 'eleme
 import TaskDialog from './modules/task-dialog.vue'
 import TaskSearch from './modules/task-search.vue'
 import DbTaskExecute from '@/components/DbTaskExecute.vue'
+import { fetchDbListTasks } from '@/api/task-db'
 
 const router = useRouter()
 type TaskItem = {
@@ -47,13 +48,9 @@ type TaskItem = {
 
 // API 函数：useTable 需要接收一个返回 Promise 的函数
 const apiFn = async (params: Record<string, any>) => {
-  const queryObj: Record<string, string> = {}
-  Object.entries(params || {}).forEach(([k, v]) => {
-    if (v !== undefined && v !== null) queryObj[k] = String(v)
-  })
-  const query = new URLSearchParams(queryObj).toString()
-  const res = await fetch(`/backend-api/tasks/db?${query}`)
-  return res.json()
+  // 使用统一的 API helper（基于 axios），并直接返回响应数据
+  const res = await fetchDbListTasks(params)
+  return res
 }
 
 const {
@@ -183,7 +180,7 @@ const onExecuteError = (err: any) => {
 const deleteTask = async (row: TaskItem) => {
   try {
     await ElMessageBox.confirm('确认删除该任务？', '删除确认', { type: 'warning' })
-    const res = await fetch(`/backend-api/tasks/${row.id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/tasks/${row.id}`, { method: 'DELETE' })
     const dataRes = await res.json()
     if (res.ok && dataRes.success) {
       ElMessage.success(dataRes.message || '删除成功')

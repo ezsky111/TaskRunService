@@ -209,7 +209,7 @@ export const ROLE_LIST_DATA: Role[] = [
   },
   {
     roleName: '管理员',
-    roleCode: 'R_ADMIN',
+    roleCode: 'admin',
     des: '拥有系统管理权限',
     date: '2025-05-15 12:30:45',
     enable: true

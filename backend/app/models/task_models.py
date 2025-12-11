@@ -52,3 +52,11 @@ class TaskRunContext(Base):
     context = Column(JSON)  # 该脚本执行后生成的环境变量
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     run = relationship('TaskRun', back_populates='contexts')
+
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), unique=True, nullable=False)
+    password_hash = Column(String(256), nullable=False)
+    roles = Column(String(256), default='user')

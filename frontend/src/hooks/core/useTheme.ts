@@ -28,7 +28,7 @@
  * ```
  *
  * @module useTheme
- * @author Art Design Pro Team
+ * @author TaskRunserver Team
  */
 
 import { useSettingStore } from '@/store/modules/setting'

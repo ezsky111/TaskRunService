@@ -151,7 +151,7 @@
       label: t('login.roles.admin'),
       userName: 'Admin',
       password: '123456',
-      roles: ['R_ADMIN']
+      roles: ['admin']
     },
     {
       key: 'user',

@@ -82,7 +82,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
-import { dbTaskApi } from '@/api/task-db'
+import { fetchGetAllDbTaskRuns,fetchGetDbTaskRuns,fetchGetDbRunLogs,fetchGetDbRunContexts } from '@/api/task-db'
 
 interface Run {
   run_id: string | number
@@ -129,21 +129,17 @@ const loadRuns = async () => {
     let res: any
     // 如果有 taskId，按任务ID加载；否则加载所有运行记录
     if (taskId.value) {
-      res = await dbTaskApi.getTaskRuns(taskId.value)
+      res = await fetchGetDbTaskRuns(taskId.value)
     } else {
       // 尝试调用通用的获取所有运行接口，如果不存在则使用第一个任务的运行记录作为示例
       try {
-        res = await fetch('/backend-api/tasks/db/runs').then(r => r.json())
+        res = await fetchGetAllDbTaskRuns().then(r => r.json())
       } catch (e) {
         // 如果接口不存在，返回空列表
         res = { success: true, data: [] }
       }
     }
-    if (res.success || res.data?.success) {
-      runs.value = (res.data || res).data || []
-    } else {
-      ElMessage.error('加载运行记录失败')
-    }
+    runs.value = res
   } catch (error: any) {
     ElMessage.error('加载运行记录失败: ' + (error.message || ''))
   } finally {
@@ -166,11 +162,11 @@ const loadRunDetails = async (runId: string | number) => {
   detailLoading.value = true
   try {
     const [logsRes, contextsRes] = await Promise.all([
-      dbTaskApi.getRunLogs(runId),
-      dbTaskApi.getRunContexts(runId)
+      fetchGetDbRunLogs(runId),
+      fetchGetDbRunContexts(runId)
     ])
-    currentLogs.value = logsRes.data.data || []
-    currentContexts.value = contextsRes.data.data || []
+    currentLogs.value = logsRes || []
+    currentContexts.value = contextsRes || []
   } catch (error: any) {
     ElMessage.error('加载详情失败: ' + (error.message || ''))
   } finally {

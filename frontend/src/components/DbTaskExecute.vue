@@ -27,7 +27,7 @@
 <script>
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { dbTaskApi } from '@/api/task-db'
+import { fetchExecuteDbTask } from '@/api/task-db'
 
 export default {
   name: 'DbTaskExecute',
@@ -63,7 +63,7 @@ export default {
 
       loading.value = true
       try {
-        const res = await dbTaskApi.executeTask(props.taskId, context)
+        const res = await fetchExecuteDbTask(props.taskId, context)
         const data = res.data || {}
         const rid = data.data?.run_id || data.data?.runId || data.run_id || data.runId || data.data
         runId.value = rid || null

@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import axios from 'axios'
+import { fetchSystemInfo, fetchSystemProcess, fetchSystemProcesses } from '@/api/system'
 
 import CardList from './modules/card-list.vue'
 import ActiveUser from './modules/active-user.vue'
@@ -103,15 +103,15 @@ async function loadMonitorData() {
   loading.value = true
   error.value = null
   try {
-    const [sysRes, procRes, allRes] = await Promise.all([
-      axios.get('/backend-api/system/info'),
-      axios.get('/backend-api/system/process'),
-      axios.get('/backend-api/system/processes')
-    ])
+    const [sysRes, procRes, allRes] = (await Promise.all([
+      fetchSystemInfo(),
+      fetchSystemProcess(),
+      fetchSystemProcesses()
+    ])) as any[]
 
-    systemInfo.value = sysRes?.data?.data ?? null
-    processInfo.value = procRes?.data?.data ?? null
-    processes.value = Array.isArray(allRes?.data?.data) ? allRes.data.data : []
+    systemInfo.value = sysRes ?? null
+    processInfo.value = procRes ?? null
+    processes.value = Array.isArray(allRes) ? allRes : []
   } catch (e: any) {
     console.error('loadMonitorData error:', e)
     error.value = e?.message || '加载监控数据失败'

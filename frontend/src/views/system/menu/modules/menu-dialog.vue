@@ -194,7 +194,7 @@
         {
           label: createLabelTooltip(
             '角色权限',
-            '仅用于前端权限模式：配置角色标识（如 R_SUPER、R_ADMIN）\n后端权限模式：无需配置'
+            '仅用于前端权限模式：配置角色标识（如 R_SUPER、admin）\n后端权限模式：无需配置'
           ),
           key: 'roles',
           type: 'inputtag',

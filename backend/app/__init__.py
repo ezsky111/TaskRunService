@@ -35,10 +35,39 @@ def create_app():
     app.process_manager = ProcessManager()
     
     # 注册路由
-    from app.routes import task_routes, log_routes, system_routes
+    from flask import request
+    from app.utils.response import api_response
+    from app.routes import task_routes, log_routes, system_routes, auth_routes
+    app.register_blueprint(auth_routes.bp)
     app.register_blueprint(task_routes.bp)
     app.register_blueprint(log_routes.bp)
     app.register_blueprint(system_routes.bp)
+
+    # 全局鉴权：对 /api/* 接口进行 token 校验，白名单可包含无需鉴权的接口
+    @app.before_request
+    def global_auth_check():
+        # 仅拦截 /api 开头的接口
+        path = request.path
+        if not path.startswith('/api'):
+            return None
+
+        # 白名单，不需要鉴权的接口
+        whitelist = ['/api/auth/login', '/api/system/health']
+        if path in whitelist:
+            return None
+
+        auth = request.headers.get('Authorization', '')
+        if not auth:
+            return api_response(None, 'Unauthorized', 401)
+
+        # 支持两种形式："Bearer <token>" 或 直接把 token 放在 Authorization 头里
+        if auth.startswith('Bearer '):
+            token = auth.split(' ', 1)[1].strip()
+        else:
+            token = auth.strip()
+        from app.utils.auth import verify_token
+        if not verify_token(token):
+            return api_response(None, 'Invalid or expired token', 401)
     
     # 前端路由 - SPA支持
     @app.route('/', defaults={'path': ''})

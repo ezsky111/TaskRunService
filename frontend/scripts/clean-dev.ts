@@ -93,7 +93,7 @@ function createModernBanner() {
     fmt.gradient('  ║                                                                  ║')
   )
   console.log(
-    `  ║               ${icons.rocket} ${fmt.title('ART DESIGN PRO')} ${fmt.subtitle('· 代码精简程序')} ${icons.magic}                ║`
+    `  ║               ${icons.rocket} ${fmt.title('TaskRunserver')} ${fmt.subtitle('· 代码精简程序')} ${icons.magic}                ║`
   )
   console.log(
     `  ║               ${fmt.dim('为项目移除演示数据，快速切换至开发模式')}             ║`
@@ -268,7 +268,7 @@ export const dashboardRoutes: AppRouteRecord = {
   meta: {
     title: 'menus.dashboard.title',
     icon: 'ri:pie-chart-line',
-    roles: ['R_SUPER', 'R_ADMIN']
+    roles: ['R_SUPER', 'admin']
   },
   children: [
     {
@@ -296,7 +296,7 @@ export const systemRoutes: AppRouteRecord = {
   meta: {
     title: 'menus.system.title',
     icon: 'ri:user-3-line',
-    roles: ['R_SUPER', 'R_ADMIN']
+    roles: ['R_SUPER', 'admin']
   },
   children: [
     {
@@ -306,7 +306,7 @@ export const systemRoutes: AppRouteRecord = {
       meta: {
         title: 'menus.system.user',
         keepAlive: true,
-        roles: ['R_SUPER', 'R_ADMIN']
+        roles: ['R_SUPER', 'admin']
       }
     },
     {

@@ -54,7 +54,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { dbTaskApi } from '@/api/task-db'
+import { fetchListScript, fetchUpdateDbTask, fetchCreateDbTask } from '@/api/task-db'
 const dialogTitle = computed(() => {
   if (isAdd.value) return '新建编排任务'
   if (isEdit.value) return '编辑编排任务'
@@ -92,8 +92,8 @@ function populateFromTask() {
 
 async function loadScripts() {
   try {
-    const res = await dbTaskApi.listScript()
-    availableScripts.value = (res.data.data || []).map((t: any) => t.name + '.py')
+    const res = await fetchListScript()
+    availableScripts.value = (res || []).map((t: any) => t.name + '.py')
   } catch (e: any) {
     ElMessage.error('加载脚本列表失败: ' + (e.message || ''))
   }
@@ -153,23 +153,23 @@ async function saveTask() {
   }
   saving.value = true
   try {
-    if (props.task && props.task.id) {
-      const res = await dbTaskApi.updateTask(props.task.id, {
-        name: form.value.name,
-        description: form.value.description,
-        scripts: form.value.scripts
-      })
-      ElMessage.success(res.data.message || '更新成功')
-      emit('submit')
-    } else {
-      const res = await dbTaskApi.createTask({
-        name: form.value.name,
-        description: form.value.description,
-        scripts: form.value.scripts
-      })
-      ElMessage.success('任务创建成功，ID: ' + res.data.task_id)
-      emit('submit')
-    }
+      if (props.task && props.task.id) {
+        const res = await fetchUpdateDbTask(props.task.id, {
+          name: form.value.name,
+          description: form.value.description,
+          scripts: form.value.scripts
+        })
+        ElMessage.success( '更新成功')
+        emit('submit')
+      } else {
+        const res = await fetchCreateDbTask({
+          name: form.value.name,
+          description: form.value.description,
+          scripts: form.value.scripts
+        })
+        ElMessage.success('任务创建成功，ID: ' + (res.task_id || res.task_id))
+        emit('submit')
+      }
     visible.value = false
   } catch (e: any) {
     ElMessage.error('保存失败: ' + (e.response?.data?.message || e.message))
