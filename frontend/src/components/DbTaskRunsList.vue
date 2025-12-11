@@ -161,8 +161,8 @@ const formatDate = (dateStr?: string) => {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-const statusType = (status: string) => {
-  const typeMap: Record<string, string> = {
+const statusType = (status: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+  const typeMap: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     success: 'success',
     failed: 'danger',
     error: 'danger',

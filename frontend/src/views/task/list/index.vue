@@ -14,8 +14,8 @@
       </ArtTableHeader>
 
       <ArtTable
-        :loading="loading"
-        :data="data"
+          :loading="loading"
+            :data="tableData"
         :columns="columns"
         :pagination="pagination"
         @selection-change="handleSelectionChange"
@@ -23,13 +23,13 @@
         @pagination:current-change="handleCurrentChange"
       />
     </ElCard>
-    <TaskDialog v-model="dialogVisible" :type="dialogType" :task="currentTask" @submit="onDialogSubmit" />
-    <DbTaskExecute v-model="showExecuteDialog" :task-id="selectedTaskForRun?.id || selectedTaskForRun" @executed="onExecuted" @error="onExecuteError" />
+    <TaskDialog v-model="dialogVisible" :type="dialogType" :task="currentTask || undefined" @submit="onDialogSubmit" />
+    <DbTaskExecute v-model="showExecuteDialog" :task-id="selectedTaskId" @executed="onExecuted" @error="onExecuteError" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { h, ref } from 'vue'
+import { h, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTable } from '@/hooks/core/useTable'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
@@ -47,7 +47,11 @@ type TaskItem = {
 
 // API 函数：useTable 需要接收一个返回 Promise 的函数
 const apiFn = async (params: Record<string, any>) => {
-  const query = new URLSearchParams(params as Record<string, string | number>).toString()
+  const queryObj: Record<string, string> = {}
+  Object.entries(params || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) queryObj[k] = String(v)
+  })
+  const query = new URLSearchParams(queryObj).toString()
   const res = await fetch(`/backend-api/tasks/db?${query}`)
   return res.json()
 }
@@ -74,41 +78,43 @@ const {
       {
         prop: 'name',
         label: '任务名',
-        formatter: (row: TaskItem) => row.name
+        formatter: (row: any) => (row as TaskItem).name
       },
       {
         prop: 'description',
         label: '任务描述',
-        formatter:  (row: TaskItem) => row.description
+        formatter: (row: any) => (row as TaskItem).description || '-'
       },
       {
         prop: 'operation',
         label: '操作',
         width: 260,
         fixed: 'right',
-        formatter: (row: TaskItem) =>
+        formatter: (row: any) =>
           h('div', [
             h(ArtButtonTable, {
               type: 'edit',
-              onClick: () => edit(row)
+              onClick: () => edit(row as TaskItem)
             }),
             h(ArtButtonTable, {
               type: 'delete',
-              onClick: () => deleteTask(row)
+              onClick: () => deleteTask(row as TaskItem)
             }),
             h(ArtButtonTable, {
               type: 'run',
-              onClick: () => run(row)
+              onClick: () => run(row as TaskItem)
             }),
             h(ArtButtonTable, {
               type: 'view',
-              onClick: () => viewRuns(row)
+              onClick: () => viewRuns(row as TaskItem)
             })
           ])
       }
     ]
   }
 })
+
+const tableData = computed(() => data.value as Record<string, any>[])
 
 const searchForm = ref({ keyword: '' })
 
@@ -124,6 +130,13 @@ const currentTask = ref<TaskItem | null>(null)
 const showExecuteDialog = ref(false)
 const selectedTaskForRun = ref(null as null | TaskItem | string | number)
 
+const selectedTaskId = computed(() => {
+  const v = selectedTaskForRun.value
+  if (v === null) return undefined
+  if (typeof v === 'object') return (v as TaskItem).id
+  return v
+})
+
 const createTask = () => {
   dialogType.value = 'add'
   currentTask.value = null
@@ -137,7 +150,7 @@ const onDialogSubmit = async () => {
 
 const view = (row: TaskItem) => {
   dialogType.value = 'view'
-  currentTask.value = row.id
+  currentTask.value = row
   dialogVisible.value = true
 }
 
